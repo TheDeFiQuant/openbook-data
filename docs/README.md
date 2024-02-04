@@ -5,9 +5,9 @@ A web interface for viewing market data from [OpenBook](https://data.openbook-ex
 
 ## Set RPC Node Endpoints
 navigate to openbook-data/src/main/java/com/mmorrell/serumdata/util
-/RpcUtil.java
-change RPC_NODE_URL_1 in line 14
-change RPC_NODE_URL_2 in line 15
+/RpcUtil.java  
+change RPC_NODE_URL_1 in line 14  
+change RPC_NODE_URL_2 in line 15  
 
 ## Building
 ### Requirements (if not using Docker)
