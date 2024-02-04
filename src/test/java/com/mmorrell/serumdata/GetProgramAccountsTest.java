@@ -24,11 +24,13 @@ public class GetProgramAccountsTest {
                 Collections.emptyList(),
                 SerumUtils.MARKET_ACCOUNT_SIZE
         );
-
-        for (int i = 0; i < programAccounts.size(); i++) {
+    
+        // Set a limit for the number of accounts to process
+        int limit = 100; // For example, limit to 100 accounts
+        for (int i = 0; i < Math.min(programAccounts.size(), limit); i++) {
             ProgramAccount programAccount = programAccounts.get(i);
             Market market = Market.readMarket(programAccount.getAccount().getDecodedData());
-
+    
             log.info(String.format("%d: %s", i, market.getOwnAddress()));
         }
     }

@@ -189,130 +189,71 @@ public class MarketManager {
      * Update marketCache with the latest markets
      */
     public void updateMarkets() {
-        log.info("Caching all Serum markets.");
-        final List<ProgramAccount> programAccounts;
-
-        try {
-            programAccounts = new ArrayList<>(
-                    client.getApi().getProgramAccounts(
-                            new PublicKey("srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX"),
-                            Collections.emptyList(),
-                            SerumUtils.MARKET_ACCOUNT_SIZE
-                    )
-            );
-        } catch (RpcException e) {
-            throw new RuntimeException(e);
-        }
-
-        for (ProgramAccount programAccount : programAccounts) {
-            Market market = Market.readMarket(programAccount.getAccount().getDecodedData());
-
-            // Ignore fake/erroneous market accounts
-            if (market.getOwnAddress().equals(new PublicKey("11111111111111111111111111111111"))) {
-                continue;
-            }
-
-            market.setBaseDecimals(
-                    (byte) tokenManager.getDecimals(
-                            market.getBaseMint()
-                    )
-            );
-            market.setQuoteDecimals(
-                    (byte) tokenManager.getDecimals(
-                            market.getQuoteMint()
-                    )
-            );
-            marketCache.put(market.getOwnAddress(), market);
-
-            // marketMapCache is a baseMint to List<Market> map which powers the token search.
-            // Get list of existing markets for this base mint. otherwise create a new list and put it there.
-            Set<Market> existingMarketList = new HashSet<>(marketMapCache.getOrDefault(market.getBaseMint(),
-                    new ArrayList<>()));
-            existingMarketList.add(market);
-
-            // put it as a market for quote mint (as a base)
-            Set<Market> existingMarketQuoteList = new HashSet<>(marketMapQuoteMintCache.getOrDefault(market.getQuoteMint(),
-                    new ArrayList<>()));
-            existingMarketQuoteList.add(market);
-
-            marketMapCache.put(market.getBaseMint(), existingMarketList.stream().toList());
-            marketMapQuoteMintCache.put(market.getQuoteMint(), existingMarketQuoteList.stream().toList());
-        }
-
-        final Map<PublicKey, Integer> marketsToPriceMap = new HashMap<>();
-        for (Market market : marketCache.values()) {
-            int marketCount = marketsToPriceMap.getOrDefault(market.getQuoteMint(), 0);
-            marketsToPriceMap.put(market.getQuoteMint(), marketCount + 1);
-        }
-
-        final List<PublicKey> quoteMintsToPrice =
-                marketsToPriceMap.entrySet().stream()
-                        .filter(entry -> entry.getValue() >= MINIMUM_REQUIRED_MARKETS_FOR_PRICING)
-                        .map(Map.Entry::getKey)
-                        .toList();
-
-        log.info("Pricing markets...");
-        final Map<PublicKey, Market> mintToUsdcMarketPubkey = new HashMap<>();
-        final Map<PublicKey, PublicKey> mintToBidOrderBook = new HashMap<>();
-
-        // Get best known USDC market for quote mint
-        quoteMintsToPrice.forEach(publicKey -> {
-            List<Market> existing = marketMapCache.getOrDefault(publicKey, marketMapQuoteMintCache.get(publicKey));
-            if (existing != null) {
-                List<Market> baseMarkets = new ArrayList<>(existing);
-                baseMarkets.sort(Comparator.comparingLong(Market::getQuoteDepositsTotal).reversed());
-                for (Market baseMarket : baseMarkets) {
-                    if (baseMarket.getQuoteMint().equals(MarketUtil.USDC_MINT) ||
-                            baseMarket.getQuoteMint().equals(MarketUtil.USDT_MINT)) {
-                        mintToUsdcMarketPubkey.put(publicKey, baseMarket);
-                        mintToBidOrderBook.put(publicKey, baseMarket.getBids());
-                        break;
-                    }
-                }
-            }
-        });
-
-        // Request data for all bid orderbooks, for best usdc markets, for token mints with > 3 markets
-        Map<PublicKey, Optional<AccountInfo.Value>> accountData = new HashMap<>();
-        Collection<PublicKey> bidOrderBooks = mintToBidOrderBook.values();
-        List<List<PublicKey>> accountsToSearchList = Lists.partition(bidOrderBooks.stream().toList(), 100);
-        for (List<PublicKey> publicKeys : accountsToSearchList) {
+        log.info("Caching specific Serum markets.");
+    
+        // List of market public keys that you want to load
+        List<PublicKey> marketPublicKeys = Arrays.asList(
+            new PublicKey("8BnEgHoWFysVcuFFX7QztDmzuH8r5ZFvyP3sYwn1XTh6"),
+            new PublicKey("8PhnCfgqpgFM7ZJvttGdBVMXHuU4Q23ACxCvWkbs1M71"),
+            new PublicKey("7tV5jsyNUg9j1AARv56b7AirdpLBecibRXLEJtycEgpP"),
+            new PublicKey("9Lyhks5bQQxb9EyyX55NtgKQzpM4WK7JCmeaWuQ5MoXD"),
+            new PublicKey("JAmhJbmBzLp2aTp9mNJodPsTcpCJsmq5jpr6CuCbWHvR"),
+            new PublicKey("DZjbn4XC8qoHKikZqzmhemykVzmossoayV9ffbsUqxVj"),
+            new PublicKey("HTHMfoxePjcXFhrV74pfCUNoWGe374ecFwiDjPGTkzHr"),
+            new PublicKey("H87FfmHABiZLRGrDsXRZtqq25YpARzaokCzL1vMYGiep"),
+            new PublicKey("B2na8Awyd7cpC59iEU43FagJAPLigr3AP3s38KM982bu"),
+            new PublicKey("EA1eJqandDNrw627mSA1Rrp2xMUvWoJBz2WwQxZYP9YX")
+        );
+    
+        for (PublicKey marketPublicKey : marketPublicKeys) {
             try {
-                accountData.putAll(client.getApi().getMultipleAccountsMap(
-                                new ArrayList<>(publicKeys)
-                        )
-                );
+                // Fetch market account data for each specified market
+                AccountInfo accountInfo = client.getApi().getAccountInfo(marketPublicKey, Collections.emptyMap());
+                
+                // Decode the Base64-encoded data
+                byte[] decodedData = Base64.getDecoder().decode(accountInfo.getValue().getData().get(0));
+                
+                // Read the market from the decoded data
+                Market market = Market.readMarket(decodedData);
+        
+                // Process and cache the market as before
+                processAndCacheMarket(market);
+        
             } catch (RpcException e) {
-                throw new RuntimeException(e);
+                log.error("Failed to load market: " + marketPublicKey, e);
             }
         }
-
-        quoteMintsToPrice.forEach(mintToPrice -> {
-            if (accountData.containsKey(mintToBidOrderBook.get(mintToPrice))) {
-                Optional<AccountInfo.Value> data = accountData.get(mintToBidOrderBook.get(mintToPrice));
-                if (data.isPresent()) {
-                    Market market = mintToUsdcMarketPubkey.get(mintToPrice);
-                    byte[] decoded = Base64.getDecoder().decode(data.get().getData().get(0));
-                    OrderBook bidOrderbook = OrderBook.readOrderBook(decoded);
-                    bidOrderbook.setBaseDecimals(market.getBaseDecimals());
-                    bidOrderbook.setQuoteDecimals(market.getQuoteDecimals());
-                    bidOrderbook.setBaseLotSize(market.getBaseLotSize());
-                    bidOrderbook.setQuoteLotSize(market.getQuoteLotSize());
-
-                    // getOrders is slightly inefficient, need to cache better
-                    if (bidOrderbook.getOrders().size() > 0 && bidOrderbook.getSlab().getSlabNodes().get(0) != null) {
-                        priceCache.put(mintToPrice, bidOrderbook.getBestBid().getFloatPrice());
-                        log.info(mintToPrice + ": Price: " + priceCache.get(mintToPrice));
-                    } else {
-                        log.info(mintToPrice + ": No bids found..");
-                    }
-                }
-            }
-        });
-
-        log.info("All Serum markets cached: " + programAccounts.size());
+    
+        log.info("Specific Serum markets cached: " + marketPublicKeys.size());
     }
-
+    
+    private void processAndCacheMarket(Market market) {
+        // Existing logic to process and cache the market
+        if (market.getOwnAddress().equals(new PublicKey("11111111111111111111111111111111"))) {
+            return;
+        }
+    
+        market.setBaseDecimals(
+                (byte) tokenManager.getDecimals(
+                        market.getBaseMint()
+                )
+        );
+        market.setQuoteDecimals(
+                (byte) tokenManager.getDecimals(
+                        market.getQuoteMint()
+                )
+        );
+        marketCache.put(market.getOwnAddress(), market);
+    
+        Set<Market> existingBaseMarketList = new HashSet<>(marketMapCache.getOrDefault(market.getBaseMint(), new ArrayList<>()));
+        existingBaseMarketList.add(market);
+        marketMapCache.put(market.getBaseMint(), new ArrayList<>(existingBaseMarketList));
+    
+        Set<Market> existingQuoteMarketList = new HashSet<>(marketMapQuoteMintCache.getOrDefault(market.getQuoteMint(), new ArrayList<>()));
+        existingQuoteMarketList.add(market);
+        marketMapQuoteMintCache.put(market.getQuoteMint(), new ArrayList<>(existingQuoteMarketList));
+    }
+    
     public int numMarketsByToken(PublicKey tokenMint) {
         return marketMapCache.getOrDefault(tokenMint, new ArrayList<>()).size();
     }

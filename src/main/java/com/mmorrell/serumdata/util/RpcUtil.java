@@ -11,8 +11,8 @@ public class RpcUtil {
     public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36";
 
     private enum PublicCluster {
-        GENESYSGO ("https://ssc-dao.genesysgo.net/"),
-        PROJECT_SERUM("https://solana-api.projectserum.com/");
+        GENESYSGO ("RPC_NODE_URL_1"),
+        PROJECT_SERUM("RPC_NODE_URL_2");
 
         private final String endpoint;
 
