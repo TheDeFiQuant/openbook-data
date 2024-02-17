@@ -23,6 +23,12 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
+// new imports 
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.util.StreamUtils;
+
 /**
  * Caches the Solana token registry in-memory
  */
@@ -32,17 +38,23 @@ public class TokenManager {
     private static final int CHAIN_ID_MAINNET = 101;
 
     private final OkHttpClient client;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     // <tokenMint string, token>
     private final Map<PublicKey, Token> tokenCache = new HashMap<>();
     private final Map<PublicKey, ByteBuffer> tokenImageCache = new ConcurrentHashMap<>();
     private byte[] placeHolderImage;
 
-    // Loads tokens from github repo into memory when this constructor is called. (e.g. during Bean creation)
-    public TokenManager(final OkHttpClient client) {
+    private final ResourceLoader resourceLoader;
+
+    // Using constructor injection for all dependencies, including ResourceLoader
+    @Autowired
+    public TokenManager(final OkHttpClient client, 
+                        final ObjectMapper objectMapper, 
+                        ResourceLoader resourceLoader) {
         this.client = client;
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.objectMapper = objectMapper;
+        this.resourceLoader = resourceLoader;
         cachePlaceHolderImage();
         updateRegistry();
     }
@@ -249,15 +261,17 @@ public class TokenManager {
         return token.map(Token::getDecimals).orElse(9);
     }
 
-    // On startup
     private void cachePlaceHolderImage() {
         try {
-            this.placeHolderImage = Resources.toByteArray(Resources.getResource("static/entities/unknown.png"));
+            // Use classpath-relative path
+            Resource resource = resourceLoader.getResource("classpath:static/entities/unknown.png");
+            this.placeHolderImage = StreamUtils.copyToByteArray(resource.getInputStream());
             log.info("Cached placeholder image.");
         } catch (IOException e) {
-            log.error(e.getMessage());
+            log.error("Error caching placeholder image: " + e.getMessage(), e);
         }
     }
+    
 
     // Additional fallback for JSP front-end
     public byte[] getPlaceHolderImage() {

@@ -3,6 +3,7 @@ package com.mmorrell.serumdata.config;
 import com.mmorrell.serumdata.util.RpcUtil;
 import okhttp3.OkHttpClient;
 import org.p2p.solanaj.rpc.RpcClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -68,4 +69,11 @@ public class WebConfig implements WebMvcConfigurer {
                 .callTimeout(5, TimeUnit.SECONDS)
                 .build();
     }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+        // You can configure your ObjectMapper here if needed
+    }
+
 }

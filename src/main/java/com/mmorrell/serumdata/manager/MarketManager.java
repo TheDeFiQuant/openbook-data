@@ -202,7 +202,10 @@ public class MarketManager {
             new PublicKey("HTHMfoxePjcXFhrV74pfCUNoWGe374ecFwiDjPGTkzHr"),
             new PublicKey("H87FfmHABiZLRGrDsXRZtqq25YpARzaokCzL1vMYGiep"),
             new PublicKey("B2na8Awyd7cpC59iEU43FagJAPLigr3AP3s38KM982bu"),
-            new PublicKey("EA1eJqandDNrw627mSA1Rrp2xMUvWoJBz2WwQxZYP9YX")
+            new PublicKey("EA1eJqandDNrw627mSA1Rrp2xMUvWoJBz2WwQxZYP9YX"),
+            new PublicKey("BbJgE7HZMaDp5NTYvRh5jZSkQPVDTU8ubPFtpogUkEj4"),
+            new PublicKey("CC9VYJprbxacpiS94tPJ1GyBhfvrLQbUiUSVMWvFohNW"),
+            new PublicKey("FbwncFP5bZjdx8J6yfDDTrCmmMkwieuape1enCvwLG33")
         );
     
         for (PublicKey marketPublicKey : marketPublicKeys) {

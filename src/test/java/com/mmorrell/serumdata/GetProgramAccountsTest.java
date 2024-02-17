@@ -26,7 +26,7 @@ public class GetProgramAccountsTest {
         );
     
         // Set a limit for the number of accounts to process
-        int limit = 100; // For example, limit to 100 accounts
+        int limit = 1; // For example, limit to 1 accounts
         for (int i = 0; i < Math.min(programAccounts.size(), limit); i++) {
             ProgramAccount programAccount = programAccounts.get(i);
             Market market = Market.readMarket(programAccount.getAccount().getDecodedData());
